@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -33,6 +33,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
 
   <script>
+    const now = new Date();
+    const buildTime = now.toLocaleString('nl-NL');
+    console.log('🚀 Build timestamp:', buildTime);
+    document.getElementById('build-info').innerText = 'Build: ' + buildTime;
+
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -70,10 +75,6 @@
           }
         });
       });
-
-    // Zet de build-tijd
-    const now = new Date();
-    document.getElementById('build-info').innerText = 'Build: ' + now.toLocaleString('nl-NL');
   </script>
 </body>
 </html>
