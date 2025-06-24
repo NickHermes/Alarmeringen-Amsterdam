@@ -4,22 +4,33 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 
   <style>
+    body { margin: 0; background: #111; }
     #map { height: 100vh; }
     .legend {
-      background: white;
+      background: rgba(20, 20, 20, 0.8);
       padding: 6px 8px;
-      font: 14px Arial, sans-serif;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      font: 12px sans-serif;
       border-radius: 5px;
+      color: #eee;
     }
     .legend input {
       margin-right: 4px;
+    }
+    .leaflet-popup-content-wrapper {
+      background: rgba(30, 30, 30, 0.9);
+      color: #eee;
+      font-family: sans-serif;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .leaflet-popup-tip {
+      background: rgba(30, 30, 30, 0.9);
     }
   </style>
 </head>
@@ -31,28 +42,38 @@
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
   <script>
-    console.log("🚀 Build timestamp: 24-06-2025 xxx");
+    console.log("🚀 Build version: dark map 13:26");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CartoDB'
+    }).addTo(map);
 
     const dienstSettings = {
-      'Politie': { color: 'blue', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png' },
-      'Brandweer': { color: 'red', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png' },
-      'Ambulance': { color: 'yellow', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png' },
-      'Overig': { color: 'gray', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' }
+      'Politie': { color: '#1E90FF' },
+      'Brandweer': { color: '#FF6347' },
+      'Ambulance': { color: '#FFD700' },
+      'Overig': { color: '#A9A9A9' }
     };
 
     const layerGroups = {};
     const clusterGroups = {};
 
+    // Setup layers and clusters
     for (const dienst in dienstSettings) {
       layerGroups[dienst] = L.layerGroup();
-      clusterGroups[dienst] = L.markerClusterGroup();
+      clusterGroups[dienst] = L.markerClusterGroup({
+        iconCreateFunction: cluster => L.divIcon({
+          html: `<div style="background:rgba(255,255,255,0.1);border:2px solid ${dienstSettings[dienst].color};border-radius:50%;width:30px;height:30px;line-height:30px;text-align:center;color:${dienstSettings[dienst].color}">${cluster.getChildCount()}</div>`,
+          className: 'marker-cluster',
+          iconSize: [30, 30]
+        })
+      });
       layerGroups[dienst].addLayer(clusterGroups[dienst]);
       layerGroups[dienst].addTo(map);
     }
 
+    // Fetch and parse CSV
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
       .then(csvText => {
@@ -70,21 +91,16 @@
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                const icon = new L.Icon({
-                  iconUrl: (dienstSettings[dienst] || dienstSettings['Overig']).iconUrl,
-                  iconSize: [32, 32],
-                  iconAnchor: [16, 32]
+                const icon = L.divIcon({
+                  className: 'custom-marker',
+                  html: `<div style="background:${dienstSettings[dienst]?.color || dienstSettings['Overig'].color}; width:12px; height:12px; border-radius:50%; box-shadow:0 0 6px ${dienstSettings[dienst]?.color || dienstSettings['Overig'].color};"></div>`,
+                  iconSize: [12, 12]
                 });
 
-                const popup = `<b>${gebeurtenis}</b><br>${tijd}<br>${dienst}<br>${adres}<br>${omschrijving}`;
-                const marker = L.marker([lat, lon], { icon: icon });
-                marker.bindPopup(popup);
+                const popup = `<b>${gebeurtenis}</b><br><small>${tijd}</small><br>${dienst}<br>${adres}<br>${omschrijving}`;
+                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popup);
 
-                if (clusterGroups[dienst]) {
-                  clusterGroups[dienst].addLayer(marker);
-                } else {
-                  clusterGroups['Overig'].addLayer(marker);
-                }
+                (clusterGroups[dienst] || clusterGroups['Overig']).addLayer(marker);
               }
             });
           }
@@ -92,7 +108,7 @@
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
 
-    // Dynamische legenda met toggles
+    // Legend
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'legend');
@@ -102,7 +118,9 @@
         div.innerHTML += `
           <div>
             <input type="checkbox" id="${id}" checked>
-            <label for="${id}" style="color:${dienstSettings[dienst].color}">${dienst}</label>
+            <label for="${id}">
+              <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+            </label>
           </div>`;
       }
       return div;
