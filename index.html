@@ -1,13 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,33 +24,22 @@
     }).addTo(map);
 
     const dienstSettings = {
-      'Politie': { color: '#1E90FF' },
-      'Brandweer': { color: '#FF6347' },
-      'Ambulance': { color: '#FFD700' },
-      'Overig': { color: '#A9A9A9' }
+      'Politie': '#1E90FF',
+      'Brandweer': '#FF6347',
+      'Ambulance': '#FFD700',
+      'Overig': '#A9A9A9'
     };
 
     const clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 40,
       iconCreateFunction: cluster => {
         const children = cluster.getAllChildMarkers();
-        const services = [...new Set(children.map(m => m.options.serviceType))];
-        const opacities = children.map(m => m.options.opacityLevel || 1);
-        const maxOpacity = Math.max(...opacities);
-
-        let borderStyle = '';
-        if (services.length === 1) {
-          borderStyle = dienstSettings[services[0]].color;
-        } else {
-          borderStyle = `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
-        }
+        const colors = [...new Set(children.map(m => m.options.serviceColor))];
+        const borderColor = colors.length === 1 ? colors[0] : '#FFF';
 
         return L.divIcon({
-          html: `<div class="custom-cluster" style="opacity:${maxOpacity}">
-                  <div class="cluster-ring" style="border-image: ${borderStyle} 1;"></div>
-                  ${cluster.getChildCount()}
-                </div>`,
-          className: '',
+          html: `<div class="cluster-ring" style="border-color:${borderColor}"></div><span>${cluster.getChildCount()}</span>`,
+          className: 'custom-cluster',
           iconSize: [34, 34]
         });
       }
@@ -65,7 +52,7 @@
         Papa.parse(csvText, {
           header: true,
           skipEmptyLines: true,
-          complete: function(results) {
+          complete: results => {
             const now = new Date();
             results.data.forEach(row => {
               const dienst = row['Dienst'] || 'Overig';
@@ -75,6 +62,7 @@
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
+                // Calculate opacity
                 let opacity = 1;
                 const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
                 if (tijdParts) {
@@ -85,26 +73,25 @@
                   else if (diffMin > 180) opacity = 0.4;
                   else if (diffMin > 60) opacity = 0.6;
                   else if (diffMin > 30) opacity = 0.8;
-                  else opacity = 1;
                 }
 
                 const marker = L.circleMarker([lat, lon], {
                   radius: 6,
-                  color: dienstSettings[dienst].color,
-                  fillColor: dienstSettings[dienst].color,
+                  color: dienstSettings[dienst],
+                  fillColor: dienstSettings[dienst],
                   fillOpacity: opacity,
                   opacity: opacity
-                });
-                marker.bindPopup(`<b>${gebeurtenis}</b><br><small>${tijd}</small>`);
-                marker.options.serviceType = dienst;
-                marker.options.opacityLevel = opacity;
-
+                }).bindPopup(`
+                  <b>${gebeurtenis}</b><br><small>${tijd}</small>
+                `);
+                marker.options.serviceColor = dienstSettings[dienst];
                 clusterGroup.addLayer(marker);
               }
             });
           }
         });
-      });
+      })
+      .catch(err => console.error('Fout bij laden CSV:', err));
   </script>
 </body>
 </html>
