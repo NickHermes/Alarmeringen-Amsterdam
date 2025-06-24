@@ -18,8 +18,8 @@
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Print build timestamp in console
-    console.log(`🚀 Build timestamp: ${new Date().toLocaleString('nl-NL')}`);
+    // 🚀 Statische build timestamp - update dit handmatig bij commit
+    console.log("🚀 Build timestamp: 24-06-2025 12:45 x");
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
