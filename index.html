@@ -27,8 +27,8 @@
       'Ambulance': L.AwesomeMarkers.icon({ icon: 'ambulance', markerColor: 'blue', prefix: 'fa' }),
       'Brandweer': L.AwesomeMarkers.icon({ icon: 'fire', markerColor: 'red', prefix: 'fa' }),
       'Politie': L.AwesomeMarkers.icon({ icon: 'shield', markerColor: 'darkpurple', prefix: 'fa' }),
-      'Overig': L.AwesomeMarkers.icon({ icon: 'exclamation-triangle', markerColor: 'green', prefix: 'fa' }),
-      'KNRM': L.AwesomeMarkers.icon({ icon: 'ship', markerColor: 'orange', prefix: 'fa' })
+      'KNRM': L.AwesomeMarkers.icon({ icon: 'ship', markerColor: 'orange', prefix: 'fa' }),
+      'Overig': L.AwesomeMarkers.icon({ icon: 'exclamation-triangle', markerColor: 'green', prefix: 'fa' })
     };
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
@@ -51,7 +51,13 @@
           const lon = parseFloat(cols[8]);
 
           if (!isNaN(lat) && !isNaN(lon)) {
-            const icon = icons[dienst] || icons['Overig'];
+            let icon = icons['Overig'];
+            if (dienst in icons) {
+              icon = icons[dienst];
+            } else {
+              console.warn(`Onbekende dienst: ${dienst}, standaard icoon gebruikt.`);
+            }
+
             const popup = `
               <strong>${gebeurtenis}</strong><br>
               <em>${tijd}</em><br>
@@ -60,13 +66,12 @@
               <b>Omschrijving:</b> ${omschrijving}
             `;
             L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popup);
-            console.log(`✅ Marker toegevoegd: ${gebeurtenis} (${lat}, ${lon})`);
           } else {
-            console.warn(`⚠️ Ongeldige coördinaten rij ${index+1}:`, lat, lon);
+            console.warn(`Ongeldige coördinaten in rij ${index+1}:`, lat, lon);
           }
         });
       })
-      .catch(err => console.error('❌ Fout bij laden CSV:', err));
+      .catch(err => console.error('Fout bij laden CSV:', err));
   </script>
 </body>
 </html>
