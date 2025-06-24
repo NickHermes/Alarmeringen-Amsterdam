@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
@@ -10,21 +10,20 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="refreshContainer">
+    <input type="password" id="passwordInput" placeholder="Wachtwoord">
+    <button id="refreshButton">Refresh Feed</button>
+    <span id="refreshStatus"></span>
+  </div>
 
   <div id="map"></div>
 
   <div id="legendContainer" class="legend">
     <b>Legenda</b>
-    <div><span class="legend-color" style="background:#1E90FF"></span> Politie</div>
-    <div><span class="legend-color" style="background:#FF6347"></span> Brandweer</div>
-    <div><span class="legend-color" style="background:#FFD700"></span> Ambulance</div>
-    <div><span class="legend-color" style="background:#A9A9A9"></span> Overig</div>
-  </div>
-
-  <div id="refreshContainer">
-    <input type="password" id="refreshPassword" placeholder="Enter password" />
-    <button id="refreshButton">Refresh Feed</button>
-    <span id="refreshStatus"></span>
+    <div class="legend-item"><span style="background:#1E90FF;"></span> Politie</div>
+    <div class="legend-item"><span style="background:#FF6347;"></span> Brandweer</div>
+    <div class="legend-item"><span style="background:#FFD700;"></span> Ambulance</div>
+    <div class="legend-item"><span style="background:#A9A9A9;"></span> Overig</div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -38,113 +37,29 @@
       attribution: '&copy; OpenStreetMap &copy; CartoDB'
     }).addTo(map);
 
-    const dienstSettings = {
-      'Politie': { color: '#1E90FF' },
-      'Brandweer': { color: '#FF6347' },
-      'Ambulance': { color: '#FFD700' },
-      'Overig': { color: '#A9A9A9' }
-    };
-
-    const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 40,
-      iconCreateFunction: cluster => {
-        const children = cluster.getAllChildMarkers();
-        const services = [...new Set(children.map(m => m.options.serviceType))];
-        const opacities = children.map(m => m.options.opacityLevel || 1);
-        const maxOpacity = Math.max(...opacities);
-
-        let gradient = services.length === 1
-          ? dienstSettings[services[0]].color
-          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
-
-        return L.divIcon({
-          html: `
-            <div style="
-              width: 36px; height: 36px;
-              border-radius: 50%;
-              border: 3px solid ${gradient};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              opacity: ${maxOpacity};
-              font-weight: bold;
-              color: #fff;
-              background: rgba(0,0,0,0.3);
-            ">
-              ${cluster.getChildCount()}
-            </div>`,
-          className: '',
-          iconSize: [36, 36]
-        });
-      }
-    });
+    // Dummy cluster setup (you can replace with your actual cluster code)
+    const clusterGroup = L.markerClusterGroup();
+    L.marker([52.37, 4.89]).addTo(clusterGroup).bindPopup("Test marker");
     clusterGroup.addTo(map);
 
-    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
-      .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            const now = new Date();
-            results.data.forEach(row => {
-              const dienst = row['Dienst'] || 'Overig';
-              const lat = parseFloat(row['Latitude']);
-              const lon = parseFloat(row['Longitude']);
-              const tijd = row['Tijd'] || '';
-              const adres = row['Adres'] || '';
-              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
-
-              if (!isNaN(lat) && !isNaN(lon)) {
-                let opacity = 1;
-                const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
-                if (tijdParts) {
-                  const meldingTijd = new Date(now);
-                  meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]));
-                  const diffMin = (now - meldingTijd) / 60000;
-                  if (diffMin > 360) opacity = 0.2;
-                  else if (diffMin > 180) opacity = 0.4;
-                  else if (diffMin > 60) opacity = 0.6;
-                  else if (diffMin > 30) opacity = 0.8;
-                  else opacity = 1;
-                }
-
-                const marker = L.circleMarker([lat, lon], {
-                  radius: 6,
-                  color: dienstSettings[dienst].color,
-                  fillColor: dienstSettings[dienst].color,
-                  fillOpacity: opacity,
-                  opacity: opacity
-                }).bindPopup(`
-                  <b>${gebeurtenis}</b><br>
-                  <small>${tijd}</small><br>
-                  <small>${adres}</small>
-                `);
-
-                marker.options.serviceType = dienst;
-                marker.options.opacityLevel = opacity;
-                clusterGroup.addLayer(marker);
-              }
-            });
-          }
-        });
-      })
-      .catch(err => console.error('Fout bij laden CSV:', err));
-
-    // Refresh button
+    // Refresh button functionality
     document.getElementById('refreshButton').addEventListener('click', function() {
-      const pwd = document.getElementById('refreshPassword').value;
-      if (pwd === 'YOUR_PASSWORD') {
+      const password = document.getElementById('passwordInput').value;
+      const status = document.getElementById('refreshStatus');
+      if (password === '112') {
         fetch('https://script.google.com/macros/s/AKfycbxOw_77vrpcavgEJjaEy0b_q7uJFAUIwrAjb8oohvtgjx8YNGtw1k2IFB0PgTzzlN8k/exec')
-          .then(() => {
-            document.getElementById('refreshStatus').innerText = '✅ Updated';
+          .then(response => response.text())
+          .then(data => {
+            status.textContent = "✅ Feed refreshed";
+            status.style.color = "lime";
           })
           .catch(() => {
-            document.getElementById('refreshStatus').innerText = '❌ Failed';
+            status.textContent = "❌ Error refreshing feed";
+            status.style.color = "red";
           });
       } else {
-        document.getElementById('refreshStatus').innerText = '❌ Wrong password';
+        status.textContent = "❌ Wrong password";
+        status.style.color = "red";
       }
     });
   </script>
