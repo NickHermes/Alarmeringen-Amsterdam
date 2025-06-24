@@ -4,68 +4,60 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
   <style>
     #map { height: 100vh; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
+
   <script>
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     const icons = {
-      'Ambulance': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Brandweer': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Politie': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Overig': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/green-dot.png', iconSize: [32,32], iconAnchor: [16,32] })
+      'Ambulance': L.AwesomeMarkers.icon({ icon: 'ambulance', markerColor: 'blue', prefix: 'fa' }),
+      'Brandweer': L.AwesomeMarkers.icon({ icon: 'fire', markerColor: 'red', prefix: 'fa' }),
+      'Politie': L.AwesomeMarkers.icon({ icon: 'shield', markerColor: 'darkpurple', prefix: 'fa' }),
+      'Overig': L.AwesomeMarkers.icon({ icon: 'exclamation-triangle', markerColor: 'green', prefix: 'fa' })
     };
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            const now = new Date();
+      .then(text => {
+        const rows = text.split('\n').slice(1);
+        rows.forEach(row => {
+          const cols = row.split(',');
 
-            results.data.forEach(row => {
-              const lat = parseFloat(row['Latitude']);
-              const lon = parseFloat(row['Longitude']);
-              const dienst = row['Dienst'] || 'Overig';
-              const tijd = row['Tijd'] || '';
-              const adres = row['Adres'] || '';
-              const omschrijving = row['Omschrijving'] || '';
-              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
+          const gebeurtenis = cols[0];
+          const tijd = cols[1];
+          const dienst = cols[2];
+          const adres = cols[3];
+          const omschrijving = cols[4];
+          const lat = parseFloat(cols[7]);
+          const lon = parseFloat(cols[8]);
 
-              if (!isNaN(lat) && !isNaN(lon)) {
-                // Bepaal transparantie op basis van tijd (optioneel, hier simpel voorbeeld)
-                let opacity = 1.0;
-                if (tijd) {
-                  const tijdParts = tijd.match(/(\d{2}):(\d{2})/);
-                  if (tijdParts) {
-                    const meldingTijd = new Date(now);
-                    meldingTijd.setHours(parseInt(tijdParts[1]), parseInt(tijdParts[2]));
-                    const diffMin = (now - meldingTijd) / 60000;
-                    opacity = diffMin > 60 ? 0.4 : (diffMin > 30 ? 0.6 : 1.0);
-                  }
-                }
-
-                const icon = icons[dienst] || icons['Overig'];
-
-                L.marker([lat, lon], { icon: icon, opacity: opacity })
-                  .addTo(map)
-                  .bindPopup(`<b>${gebeurtenis}</b><br>${tijd}<br>${dienst}<br>${adres}<br>${omschrijving}`);
-              }
-            });
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const icon = icons[dienst] || icons['Overig'];
+            const popup = `
+              <strong>${gebeurtenis}</strong><br>
+              <em>${tijd}</em><br>
+              <b>Dienst:</b> ${dienst}<br>
+              <b>Adres:</b> ${adres}<br>
+              <b>Omschrijving:</b> ${omschrijving}
+            `;
+            L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popup);
           }
         });
-      })
-      .catch(err => console.error('Fout bij laden CSV:', err));
+      });
   </script>
 </body>
 </html>
