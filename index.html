@@ -6,36 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-  <style>
-    body { margin: 0; background: #111; }
-    #map { height: 100vh; }
-    .legend {
-      background: rgba(20, 20, 20, 0.8);
-      padding: 6px 8px;
-      font: 12px sans-serif;
-      border-radius: 5px;
-      color: #eee;
-    }
-    .leaflet-popup-content-wrapper {
-      background: rgba(30, 30, 30, 0.9);
-      color: #eee;
-      font-family: monospace;
-      font-size: 12px;
-      border-radius: 6px;
-    }
-    .leaflet-popup-tip {
-      background: rgba(30, 30, 30, 0.9);
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="map"></div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
   <script>
-    console.log("🚀 Build version: 24-06-2025-003");
+    console.log("🚀 Build version: style css");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -57,39 +38,15 @@
         const opacities = children.map(m => m.options.opacityLevel || 1);
         const maxOpacity = Math.max(...opacities);
 
-        let borderStyle = services.length === 1
+        const borderColor = services.length === 1
           ? dienstSettings[services[0]].color
-          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
+          : '#FFFFFF'; // fallback for mixed — gradient is complex with border
 
         return L.divIcon({
-          html: `
-            <div style="
-              width: 36px; height: 36px;
-              border-radius: 50%;
-              border: 3px solid transparent;
-              background: ${borderStyle};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              opacity: ${maxOpacity};
-              position: relative;
-            ">
-              <div style="
-                position: absolute;
-                width: 22px; height: 22px;
-                background: #111;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                font-size: 12px;
-                color: #fff;
-              ">
-                ${cluster.getChildCount()}
-              </div>
-            </div>`,
-          className: '',
+          html: `<div class="custom-cluster" style="border-color: ${borderColor}; opacity: ${maxOpacity}">
+                    ${cluster.getChildCount()}
+                 </div>`,
+          className: '', 
           iconSize: [36, 36]
         });
       }
@@ -148,15 +105,14 @@
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
 
-    // Legend
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML = '<b>Legenda</b><br>';
+      div.innerHTML = '<b>Legenda</b>';
       for (const dienst in dienstSettings) {
         div.innerHTML += `
-          <div>
-            <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+          <div class="legend-item">
+            <span style="background:${dienstSettings[dienst].color}"></span>${dienst}
           </div>`;
       }
       return div;
