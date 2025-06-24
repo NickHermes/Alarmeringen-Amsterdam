@@ -12,15 +12,19 @@ body {
   border-radius: 5px;
   color: #eee;
   display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: space-around;   /* Mooie spreiding */
+  gap: 8px;                        /* Iets kleiner gat */
+  flex-wrap: wrap;                 /* Laat regels afbreken */
   position: absolute;
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
+  width: 90vw;                     /* Responsive breedte */
+  max-width: 500px;                /* Beperking op grote schermen */
+  box-sizing: border-box;          /* Padding telt mee in breedte */
 }
+
 .legend-item {
   display: flex;
   align-items: center;
