@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
@@ -10,7 +10,16 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
   <div id="map"></div>
+
+  <div id="legendContainer" class="legend">
+    <b>Legenda</b>
+    <div><span class="legend-color" style="background:#1E90FF"></span> Politie</div>
+    <div><span class="legend-color" style="background:#FF6347"></span> Brandweer</div>
+    <div><span class="legend-color" style="background:#FFD700"></span> Ambulance</div>
+    <div><span class="legend-color" style="background:#A9A9A9"></span> Overig</div>
+  </div>
 
   <div id="refreshContainer">
     <input type="password" id="refreshPassword" placeholder="Enter password" />
@@ -44,7 +53,7 @@
         const opacities = children.map(m => m.options.opacityLevel || 1);
         const maxOpacity = Math.max(...opacities);
 
-        let borderStyle = services.length === 1
+        let gradient = services.length === 1
           ? dienstSettings[services[0]].color
           : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
 
@@ -53,26 +62,16 @@
             <div style="
               width: 36px; height: 36px;
               border-radius: 50%;
-              border: 3px solid transparent;
-              background: ${borderStyle};
+              border: 3px solid ${gradient};
               display: flex;
               align-items: center;
               justify-content: center;
               opacity: ${maxOpacity};
+              font-weight: bold;
+              color: #fff;
+              background: rgba(0,0,0,0.3);
             ">
-              <div style="
-                background: #111;
-                width: 22px; height: 22px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                font-size: 12px;
-                color: #fff;
-              ">
-                ${cluster.getChildCount()}
-              </div>
+              ${cluster.getChildCount()}
             </div>`,
           className: '',
           iconSize: [36, 36]
@@ -133,31 +132,20 @@
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
 
-    // Refresh button logic
+    // Refresh button
     document.getElementById('refreshButton').addEventListener('click', function() {
-      const password = document.getElementById('refreshPassword').value;
-      const status = document.getElementById('refreshStatus');
-
-      if (password !== '112') {
-        status.textContent = '❌ Incorrect password';
-        status.style.color = 'red';
-        return;
+      const pwd = document.getElementById('refreshPassword').value;
+      if (pwd === 'YOUR_PASSWORD') {
+        fetch('https://script.google.com/macros/s/AKfycbxOw_77vrpcavgEJjaEy0b_q7uJFAUIwrAjb8oohvtgjx8YNGtw1k2IFB0PgTzzlN8k/exec')
+          .then(() => {
+            document.getElementById('refreshStatus').innerText = '✅ Updated';
+          })
+          .catch(() => {
+            document.getElementById('refreshStatus').innerText = '❌ Failed';
+          });
+      } else {
+        document.getElementById('refreshStatus').innerText = '❌ Wrong password';
       }
-
-      status.textContent = '⏳ Refreshing...';
-      status.style.color = '#eee';
-
-      fetch('https://script.google.com/macros/s/AKfycbxOw_77vrpcavgEJjaEy0b_q7uJFAUIwrAjb8oohvtgjx8YNGtw1k2IFB0PgTzzlN8k/exec')
-        .then(response => response.text())
-        .then(text => {
-          status.textContent = '✅ Feed refreshed';
-          status.style.color = 'lightgreen';
-        })
-        .catch(err => {
-          console.error('Refresh error:', err);
-          status.textContent = '❌ Error refreshing';
-          status.style.color = 'red';
-        });
     });
   </script>
 </body>
