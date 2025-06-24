@@ -46,3 +46,19 @@
           const lon = parseFloat(cols[8]);
 
           if (!isNaN(lat) && !isNaN(lon)) {
+            const icon = icons[dienst] || icons['Overig'];
+            const popup = `
+              <strong>${gebeurtenis}</strong><br>
+              <em>${tijd}</em><br>
+              <b>Dienst:</b> ${dienst}<br>
+              <b>Adres:</b> ${adres}<br>
+              <b>Omschrijving:</b> ${omschrijving}
+            `;
+            L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popup);
+          }
+        });
+      })
+      .catch(err => console.error('Error loading CSV:', err));
+  </script>
+</body>
+</html>
