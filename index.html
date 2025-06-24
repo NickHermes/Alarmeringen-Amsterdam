@@ -1,20 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <style>
+    body { margin: 0; background: #111; }
+    #map { height: 100vh; }
+    .legend {
+      background: rgba(20, 20, 20, 0.8);
+      padding: 6px 8px;
+      font: 12px sans-serif;
+      border-radius: 5px;
+      color: #eee;
+    }
+    .leaflet-popup-content-wrapper {
+      background: rgba(30, 30, 30, 0.9);
+      color: #eee;
+      font-family: monospace;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .leaflet-popup-tip {
+      background: rgba(30, 30, 30, 0.9);
+    }
+  </style>
 </head>
 <body>
   <div id="map"></div>
-
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-
   <script>
     console.log("🚀 Build version: 24-06-2025-003");
 
@@ -24,23 +43,54 @@
     }).addTo(map);
 
     const dienstSettings = {
-      'Politie': '#1E90FF',
-      'Brandweer': '#FF6347',
-      'Ambulance': '#FFD700',
-      'Overig': '#A9A9A9'
+      'Politie': { color: '#1E90FF' },
+      'Brandweer': { color: '#FF6347' },
+      'Ambulance': { color: '#FFD700' },
+      'Overig': { color: '#A9A9A9' }
     };
 
     const clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 40,
       iconCreateFunction: cluster => {
         const children = cluster.getAllChildMarkers();
-        const colors = [...new Set(children.map(m => m.options.serviceColor))];
-        const borderColor = colors.length === 1 ? colors[0] : '#FFF';
+        const services = [...new Set(children.map(m => m.options.serviceType))];
+        const opacities = children.map(m => m.options.opacityLevel || 1);
+        const maxOpacity = Math.max(...opacities);
+
+        let borderStyle = services.length === 1
+          ? dienstSettings[services[0]].color
+          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
 
         return L.divIcon({
-          html: `<div class="cluster-ring" style="border-color:${borderColor}"></div><span>${cluster.getChildCount()}</span>`,
-          className: 'custom-cluster',
-          iconSize: [34, 34]
+          html: `
+            <div style="
+              width: 36px; height: 36px;
+              border-radius: 50%;
+              border: 3px solid transparent;
+              background: ${borderStyle};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              opacity: ${maxOpacity};
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                width: 22px; height: 22px;
+                background: #111;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 12px;
+                color: #fff;
+              ">
+                ${cluster.getChildCount()}
+              </div>
+            </div>`,
+          className: '',
+          iconSize: [36, 36]
         });
       }
     });
@@ -52,17 +102,17 @@
         Papa.parse(csvText, {
           header: true,
           skipEmptyLines: true,
-          complete: results => {
+          complete: function(results) {
             const now = new Date();
             results.data.forEach(row => {
               const dienst = row['Dienst'] || 'Overig';
               const lat = parseFloat(row['Latitude']);
               const lon = parseFloat(row['Longitude']);
               const tijd = row['Tijd'] || '';
+              const adres = row['Adres'] || '';
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                // Calculate opacity
                 let opacity = 1;
                 const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
                 if (tijdParts) {
@@ -73,18 +123,23 @@
                   else if (diffMin > 180) opacity = 0.4;
                   else if (diffMin > 60) opacity = 0.6;
                   else if (diffMin > 30) opacity = 0.8;
+                  else opacity = 1;
                 }
 
                 const marker = L.circleMarker([lat, lon], {
                   radius: 6,
-                  color: dienstSettings[dienst],
-                  fillColor: dienstSettings[dienst],
+                  color: dienstSettings[dienst].color,
+                  fillColor: dienstSettings[dienst].color,
                   fillOpacity: opacity,
                   opacity: opacity
                 }).bindPopup(`
-                  <b>${gebeurtenis}</b><br><small>${tijd}</small>
+                  <b>${gebeurtenis}</b><br>
+                  <small>${tijd}</small><br>
+                  <small>${adres}</small>
                 `);
-                marker.options.serviceColor = dienstSettings[dienst];
+
+                marker.options.serviceType = dienst;
+                marker.options.opacityLevel = opacity;
                 clusterGroup.addLayer(marker);
               }
             });
@@ -92,6 +147,21 @@
         });
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
+
+    // Legend
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = '<b>Legenda</b><br>';
+      for (const dienst in dienstSettings) {
+        div.innerHTML += `
+          <div>
+            <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+          </div>`;
+      }
+      return div;
+    };
+    legend.addTo(map);
   </script>
 </body>
 </html>
