@@ -1,6 +1,10 @@
-body { margin: 0; background: #111; }
-#map { height: 100vh; }
-
+body { 
+  margin: 0; 
+  background: #111; 
+}
+#map { 
+  height: 100vh; 
+}
 .legend {
   background: rgba(20, 20, 20, 0.8);
   padding: 6px 8px;
@@ -12,20 +16,6 @@ body { margin: 0; background: #111; }
   gap: 12px;
   flex-wrap: wrap;
 }
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.legend-item span {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
 .leaflet-popup-content-wrapper {
   background: rgba(30, 30, 30, 0.9);
   color: #eee;
@@ -33,30 +23,40 @@ body { margin: 0; background: #111; }
   font-size: 12px;
   border-radius: 6px;
 }
-
 .leaflet-popup-tip {
   background: rgba(30, 30, 30, 0.9);
 }
-
-.custom-cluster {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+#refreshContainer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(30, 30, 30, 0.8);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: sans-serif;
+  color: #eee;
   display: flex;
+  gap: 4px;
   align-items: center;
-  justify-content: center;
-  position: relative;
 }
-
-.custom-cluster-inner {
-  width: 24px;
-  height: 24px;
-  background: #111;
-  border-radius: 50%;
-  color: #fff;
-  font-weight: bold;
+#refreshContainer input {
+  padding: 4px;
   font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 4px;
+  border: none;
+}
+#refreshContainer button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  background: #1E90FF;
+  color: #fff;
+  cursor: pointer;
+}
+#refreshContainer button:hover {
+  background: #4682B4;
+}
+#refreshStatus {
+  font-size: 12px;
 }
