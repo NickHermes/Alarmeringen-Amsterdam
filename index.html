@@ -18,9 +18,8 @@
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Print timestamp naar console
-    const buildTime = new Date().toLocaleString('nl-NL');
-    console.log(`🚀 Build timestamp: ${buildTime}`);
+    // Print build timestamp in console
+    console.log(`🚀 Build timestamp: ${new Date().toLocaleString('nl-NL')}`);
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
@@ -38,30 +37,27 @@
           const lon = parseFloat(cols[8]);
 
           if (!isNaN(lat) && !isNaN(lon)) {
-            // Verschillende kleuren afhankelijk van dienst
-            let markerColor = 'blue';
-            if (dienst.includes('Brandweer')) markerColor = 'red';
-            else if (dienst.includes('Politie')) markerColor = 'black';
-            else if (dienst.includes('Overig')) markerColor = 'green';
+            let kleur = 'blue';
+            if (dienst.includes('Brandweer')) kleur = 'red';
+            else if (dienst.includes('Politie')) kleur = 'black';
+            else if (dienst.includes('Overig')) kleur = 'green';
 
-            // Standaard Leaflet marker
             const marker = L.circleMarker([lat, lon], {
               radius: 8,
-              fillColor: markerColor,
+              fillColor: kleur,
               color: "#000",
               weight: 1,
               opacity: 1,
               fillOpacity: 0.8
             }).addTo(map);
 
-            const popup = `
+            marker.bindPopup(`
               <strong>${gebeurtenis}</strong><br>
               <em>${tijd}</em><br>
               <b>Dienst:</b> ${dienst}<br>
               <b>Adres:</b> ${adres}<br>
               <b>Omschrijving:</b> ${omschrijving}
-            `;
-            marker.bindPopup(popup);
+            `);
           }
         });
       });
