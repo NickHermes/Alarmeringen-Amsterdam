@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
   <style>
     #map { height: 100vh; }
@@ -17,7 +17,7 @@
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
 
   <script>
     const map = L.map('map').setView([52.37, 4.89], 12);
@@ -39,25 +39,10 @@
 
           const gebeurtenis = cols[0];
           const tijd = cols[1];
-          const dienst = cols[2];
+          const dienst = cols[2].trim();  // Trim om onzichtbare spaties te verwijderen
           const adres = cols[3];
           const omschrijving = cols[4];
           const lat = parseFloat(cols[7]);
           const lon = parseFloat(cols[8]);
 
           if (!isNaN(lat) && !isNaN(lon)) {
-            const icon = icons[dienst] || icons['Overig'];
-            const popup = `
-              <strong>${gebeurtenis}</strong><br>
-              <em>${tijd}</em><br>
-              <b>Dienst:</b> ${dienst}<br>
-              <b>Adres:</b> ${adres}<br>
-              <b>Omschrijving:</b> ${omschrijving}
-            `;
-            L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popup);
-          }
-        });
-      });
-  </script>
-</body>
-</html>
