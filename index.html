@@ -30,19 +30,118 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
   <script>
-    console.log("🚀 Build version: 24-06-2025-004");
+    console.log("🚀 Build version: 24-06-2025-005");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CartoDB'
     }).addTo(map);
 
-    // Dummy cluster setup (you can replace with your actual cluster code)
-    const clusterGroup = L.markerClusterGroup();
-    L.marker([52.37, 4.89]).addTo(clusterGroup).bindPopup("Test marker");
+    const dienstSettings = {
+      'Politie': { color: '#1E90FF' },
+      'Brandweer': { color: '#FF6347' },
+      'Ambulance': { color: '#FFD700' },
+      'Overig': { color: '#A9A9A9' }
+    };
+
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 40,
+      iconCreateFunction: cluster => {
+        const children = cluster.getAllChildMarkers();
+        const services = [...new Set(children.map(m => m.options.serviceType))];
+        const opacities = children.map(m => m.options.opacityLevel || 1);
+        const maxOpacity = Math.max(...opacities);
+
+        let borderStyle = services.length === 1
+          ? dienstSettings[services[0]].color
+          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
+
+        return L.divIcon({
+          html: `
+            <div style="
+              width: 36px; height: 36px;
+              border-radius: 50%;
+              border: 3px solid transparent;
+              background: ${borderStyle};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              opacity: ${maxOpacity};
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                width: 22px; height: 22px;
+                background: #111;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 12px;
+                color: #fff;
+              ">
+                ${cluster.getChildCount()}
+              </div>
+            </div>`,
+          className: '',
+          iconSize: [36, 36]
+        });
+      }
+    });
     clusterGroup.addTo(map);
 
-    // Refresh button functionality
+    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
+      .then(response => response.text())
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            const now = new Date();
+            results.data.forEach(row => {
+              const dienst = row['Dienst'] || 'Overig';
+              const lat = parseFloat(row['Latitude']);
+              const lon = parseFloat(row['Longitude']);
+              const tijd = row['Tijd'] || '';
+              const adres = row['Adres'] || '';
+              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
+
+              if (!isNaN(lat) && !isNaN(lon)) {
+                let opacity = 1;
+                const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
+                if (tijdParts) {
+                  const meldingTijd = new Date(now);
+                  meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]));
+                  const diffMin = (now - meldingTijd) / 60000;
+                  if (diffMin > 360) opacity = 0.2;
+                  else if (diffMin > 180) opacity = 0.4;
+                  else if (diffMin > 60) opacity = 0.6;
+                  else if (diffMin > 30) opacity = 0.8;
+                  else opacity = 1;
+                }
+
+                const marker = L.circleMarker([lat, lon], {
+                  radius: 6,
+                  color: dienstSettings[dienst].color,
+                  fillColor: dienstSettings[dienst].color,
+                  fillOpacity: opacity,
+                  opacity: opacity
+                }).bindPopup(`
+                  <b>${gebeurtenis}</b><br>
+                  <small>${tijd}</small><br>
+                  <small>${adres}</small>
+                `);
+
+                marker.options.serviceType = dienst;
+                marker.options.opacityLevel = opacity;
+                clusterGroup.addLayer(marker);
+              }
+            });
+          }
+        });
+      });
+
     document.getElementById('refreshButton').addEventListener('click', function() {
       const password = document.getElementById('passwordInput').value;
       const status = document.getElementById('refreshStatus');
