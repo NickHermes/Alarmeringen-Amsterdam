@@ -17,6 +17,13 @@
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+    const icons = {
+      'Ambulance': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
+      'Brandweer': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
+      'Politie': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
+      'Overig': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/green-dot.png', iconSize: [32,32], iconAnchor: [16,32] })
+    };
+
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
       .then(csvText => {
@@ -24,16 +31,35 @@
           header: true,
           skipEmptyLines: true,
           complete: function(results) {
-            console.log('Parsed data:', results.data);
+            const now = new Date();
+
             results.data.forEach(row => {
               const lat = parseFloat(row['Latitude']);
               const lon = parseFloat(row['Longitude']);
-              const title = row['Gebeurtenis'] || 'Onbekend';
+              const dienst = row['Dienst'] || 'Overig';
+              const tijd = row['Tijd'] || '';
+              const adres = row['Adres'] || '';
+              const omschrijving = row['Omschrijving'] || '';
+              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                L.marker([lat, lon]).addTo(map).bindPopup(title);
-              } else {
-                console.warn('Ongeldige coördinaten:', row);
+                // Bepaal transparantie op basis van tijd (optioneel, hier simpel voorbeeld)
+                let opacity = 1.0;
+                if (tijd) {
+                  const tijdParts = tijd.match(/(\d{2}):(\d{2})/);
+                  if (tijdParts) {
+                    const meldingTijd = new Date(now);
+                    meldingTijd.setHours(parseInt(tijdParts[1]), parseInt(tijdParts[2]));
+                    const diffMin = (now - meldingTijd) / 60000;
+                    opacity = diffMin > 60 ? 0.4 : (diffMin > 30 ? 0.6 : 1.0);
+                  }
+                }
+
+                const icon = icons[dienst] || icons['Overig'];
+
+                L.marker([lat, lon], { icon: icon, opacity: opacity })
+                  .addTo(map)
+                  .bindPopup(`<b>${gebeurtenis}</b><br>${tijd}<br>${dienst}<br>${adres}<br>${omschrijving}`);
               }
             });
           }
