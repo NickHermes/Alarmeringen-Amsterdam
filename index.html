@@ -1,37 +1,27 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <title>Alarmeringen Amsterdam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="map"></div>
   <div id="refreshContainer">
-    <input type="password" id="passwordInput" placeholder="Wachtwoord">
+    <input type="password" id="passwordInput" placeholder="Wachtwoord" />
     <button id="refreshButton">Refresh Feed</button>
     <span id="refreshStatus"></span>
   </div>
-
-  <div id="map"></div>
-
-  <div id="legendContainer" class="legend">
-    <b>Legenda</b>
-    <div class="legend-item"><span style="background:#1E90FF;"></span> Politie</div>
-    <div class="legend-item"><span style="background:#FF6347;"></span> Brandweer</div>
-    <div class="legend-item"><span style="background:#FFD700;"></span> Ambulance</div>
-    <div class="legend-item"><span style="background:#A9A9A9;"></span> Overig</div>
-  </div>
+  <div id="legendContainer" class="legend"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
   <script>
-    console.log("🚀 Build version: 24-06-2025-005");
-
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CartoDB'
@@ -49,13 +39,10 @@
       iconCreateFunction: cluster => {
         const children = cluster.getAllChildMarkers();
         const services = [...new Set(children.map(m => m.options.serviceType))];
-        const opacities = children.map(m => m.options.opacityLevel || 1);
-        const maxOpacity = Math.max(...opacities);
-
+        const maxOpacity = Math.max(...children.map(m => m.options.opacityLevel || 1));
         let borderStyle = services.length === 1
           ? dienstSettings[services[0]].color
           : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
-
         return L.divIcon({
           html: `
             <div style="
@@ -91,14 +78,13 @@
     });
     clusterGroup.addTo(map);
 
-    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
+    fetch('https://docs.google.com/spreadsheets/d/e/YOUR_CSV_LINK/pub?output=csv')
       .then(response => response.text())
       .then(csvText => {
         Papa.parse(csvText, {
           header: true,
           skipEmptyLines: true,
           complete: function(results) {
-            const now = new Date();
             results.data.forEach(row => {
               const dienst = row['Dienst'] || 'Overig';
               const lat = parseFloat(row['Latitude']);
@@ -107,60 +93,44 @@
               const adres = row['Adres'] || '';
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
-              if (!isNaN(lat) && !isNaN(lon)) {
-                let opacity = 1;
-                const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
-                if (tijdParts) {
-                  const meldingTijd = new Date(now);
-                  meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]));
-                  const diffMin = (now - meldingTijd) / 60000;
-                  if (diffMin > 360) opacity = 0.2;
-                  else if (diffMin > 180) opacity = 0.4;
-                  else if (diffMin > 60) opacity = 0.6;
-                  else if (diffMin > 30) opacity = 0.8;
-                  else opacity = 1;
-                }
+              if (isNaN(lat) || isNaN(lon)) return;
 
-                const marker = L.circleMarker([lat, lon], {
-                  radius: 6,
-                  color: dienstSettings[dienst].color,
-                  fillColor: dienstSettings[dienst].color,
-                  fillOpacity: opacity,
-                  opacity: opacity
-                }).bindPopup(`
-                  <b>${gebeurtenis}</b><br>
-                  <small>${tijd}</small><br>
-                  <small>${adres}</small>
-                `);
-
-                marker.options.serviceType = dienst;
-                marker.options.opacityLevel = opacity;
-                clusterGroup.addLayer(marker);
+              let opacity = 1;
+              // Bereken op basis van tijd (voorbeeldcode, kan je uitbreiden)
+              const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
+              if (tijdParts) {
+                // Voeg hier je tijdslogica toe
               }
+
+              const marker = L.circleMarker([lat, lon], {
+                radius: 6,
+                color: dienstSettings[dienst].color,
+                fillColor: dienstSettings[dienst].color,
+                fillOpacity: opacity,
+                opacity: opacity
+              }).bindPopup(`<b>${gebeurtenis}</b><br><small>${tijd}</small><br><small>${adres}</small>`);
+
+              marker.options.serviceType = dienst;
+              marker.options.opacityLevel = opacity;
+              clusterGroup.addLayer(marker);
             });
           }
         });
       });
 
-    document.getElementById('refreshButton').addEventListener('click', function() {
-      const password = document.getElementById('passwordInput').value;
-      const status = document.getElementById('refreshStatus');
-      if (password === '112') {
-        fetch('https://script.google.com/macros/s/AKfycbwSjzET63UaTv1MHy466IyNpleGUVYcrn4Q9oPrUIgnRxP_cFtS2Ag-i0u5cG2WYR1C/exec')
-          .then(response => response.text())
-          .then(data => {
-            status.textContent = "✅ Feed refreshed";
-            status.style.color = "lime";
-          })
-          .catch(() => {
-            status.textContent = "❌ Error refreshing feed";
-            status.style.color = "red";
-          });
-      } else {
-        status.textContent = "❌ Wrong password";
-        status.style.color = "red";
-      }
-    });
+    // Legenda
+    const legendContainer = document.getElementById('legendContainer');
+    legendContainer.innerHTML = '<b>Legenda</b>';
+    for (const dienst in dienstSettings) {
+      legendContainer.innerHTML += `
+        <div class="legend-item">
+          <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span>
+          ${dienst}
+        </div>`;
+    }
+
+    // Refresh knop (disabled)
+    document.getElementById('refreshButton').disabled = true;
   </script>
 </body>
 </html>
