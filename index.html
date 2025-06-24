@@ -4,49 +4,23 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
-    #map { height: 100%; }
-    #build-info {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 3px 6px;
-      border-radius: 3px;
-      font-size: 10px;
-      font-family: sans-serif;
-      z-index: 9999;
-    }
+    #map { height: 100vh; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="build-info"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
-
   <script>
-    const now = new Date();
-    const buildTime = now.toLocaleString('nl-NL');
-    console.log('🚀 Build timestamp:', buildTime);
-    document.getElementById('build-info').innerText = 'Build: ' + buildTime;
-
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const icons = {
-      'Ambulance': L.AwesomeMarkers.icon({ icon: 'ambulance', markerColor: 'blue', prefix: 'fa' }),
-      'Brandweer': L.AwesomeMarkers.icon({ icon: 'fire', markerColor: 'red', prefix: 'fa' }),
-      'Politie': L.AwesomeMarkers.icon({ icon: 'shield', markerColor: 'darkpurple', prefix: 'fa' }),
-      'Overig': L.AwesomeMarkers.icon({ icon: 'exclamation-triangle', markerColor: 'green', prefix: 'fa' })
-    };
+    // Print timestamp naar console
+    const buildTime = new Date().toLocaleString('nl-NL');
+    console.log(`🚀 Build timestamp: ${buildTime}`);
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
@@ -54,6 +28,7 @@
         const rows = text.split('\n').slice(1);
         rows.forEach(row => {
           const cols = row.split(',');
+
           const gebeurtenis = cols[0];
           const tijd = cols[1];
           const dienst = cols[2];
@@ -63,7 +38,22 @@
           const lon = parseFloat(cols[8]);
 
           if (!isNaN(lat) && !isNaN(lon)) {
-            const icon = icons[dienst] || icons['Overig'];
+            // Verschillende kleuren afhankelijk van dienst
+            let markerColor = 'blue';
+            if (dienst.includes('Brandweer')) markerColor = 'red';
+            else if (dienst.includes('Politie')) markerColor = 'black';
+            else if (dienst.includes('Overig')) markerColor = 'green';
+
+            // Standaard Leaflet marker
+            const marker = L.circleMarker([lat, lon], {
+              radius: 8,
+              fillColor: markerColor,
+              color: "#000",
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(map);
+
             const popup = `
               <strong>${gebeurtenis}</strong><br>
               <em>${tijd}</em><br>
@@ -71,7 +61,7 @@
               <b>Adres:</b> ${adres}<br>
               <b>Omschrijving:</b> ${omschrijving}
             `;
-            L.marker([lat, lon], { icon: icon }).addTo(map).bindPopup(popup);
+            marker.bindPopup(popup);
           }
         });
       });
