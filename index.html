@@ -4,33 +4,33 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
   <style>
-    body { margin: 0; background: #111; }
+    body { margin: 0; background: #000; }
     #map { height: 100vh; }
     .legend {
       background: rgba(20, 20, 20, 0.8);
-      padding: 6px 8px;
-      font: 12px sans-serif;
-      border-radius: 5px;
-      color: #eee;
+      padding: 10px;
+      font: 14px "Courier New", monospace;
+      color: #ccc;
+      border-radius: 8px;
     }
-    .legend input {
-      margin-right: 4px;
+    .legend i {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      text-align: center;
     }
-    .leaflet-popup-content-wrapper {
-      background: rgba(30, 30, 30, 0.9);
-      color: #eee;
-      font-family: sans-serif;
-      font-size: 12px;
+    .custom-popup {
+      background: rgba(20, 20, 20, 0.9);
+      color: #00ffff;
+      font-family: "Courier New", monospace;
+      padding: 5px;
       border-radius: 6px;
-    }
-    .leaflet-popup-tip {
-      background: rgba(30, 30, 30, 0.9);
     }
   </style>
 </head>
@@ -38,46 +38,35 @@
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
   <script>
-    console.log("🚀 Build version: dark map 13:26");
+    console.log("🚀 Build version: darkmode v2");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CartoDB'
+      attribution: '&copy; OpenStreetMap & CartoDB'
     }).addTo(map);
 
-    const dienstSettings = {
-      'Politie': { color: '#1E90FF' },
-      'Brandweer': { color: '#FF6347' },
-      'Ambulance': { color: '#FFD700' },
-      'Overig': { color: '#A9A9A9' }
+    const iconSettings = {
+      'Politie': L.AwesomeMarkers.icon({ icon: 'shield', markerColor: 'blue', prefix: 'fa' }),
+      'Brandweer': L.AwesomeMarkers.icon({ icon: 'fire', markerColor: 'red', prefix: 'fa' }),
+      'Ambulance': L.AwesomeMarkers.icon({ icon: 'plus', markerColor: 'orange', prefix: 'fa' }),
+      'Overig': L.AwesomeMarkers.icon({ icon: 'circle', markerColor: 'cadetblue', prefix: 'fa' })
     };
 
-    const layerGroups = {};
-    const clusterGroups = {};
+    const layers = {
+      'Politie': L.layerGroup().addTo(map),
+      'Brandweer': L.layerGroup().addTo(map),
+      'Ambulance': L.layerGroup().addTo(map),
+      'Overig': L.layerGroup().addTo(map)
+    };
 
-    // Setup layers and clusters
-    for (const dienst in dienstSettings) {
-      layerGroups[dienst] = L.layerGroup();
-      clusterGroups[dienst] = L.markerClusterGroup({
-        iconCreateFunction: cluster => L.divIcon({
-          html: `<div style="background:rgba(255,255,255,0.1);border:2px solid ${dienstSettings[dienst].color};border-radius:50%;width:30px;height:30px;line-height:30px;text-align:center;color:${dienstSettings[dienst].color}">${cluster.getChildCount()}</div>`,
-          className: 'marker-cluster',
-          iconSize: [30, 30]
-        })
-      });
-      layerGroups[dienst].addLayer(clusterGroups[dienst]);
-      layerGroups[dienst].addTo(map);
-    }
-
-    // Fetch and parse CSV
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
-      .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
+      .then(res => res.text())
+      .then(csv => {
+        Papa.parse(csv, {
           header: true,
           skipEmptyLines: true,
           complete: function(results) {
@@ -88,55 +77,39 @@
               const tijd = row['Tijd'] || '';
               const adres = row['Adres'] || '';
               const omschrijving = row['Omschrijving'] || '';
-              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
+              const gebeurtenis = row['Gebeurtenis'] || 'Incident';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                const icon = L.divIcon({
-                  className: 'custom-marker',
-                  html: `<div style="background:${dienstSettings[dienst]?.color || dienstSettings['Overig'].color}; width:12px; height:12px; border-radius:50%; box-shadow:0 0 6px ${dienstSettings[dienst]?.color || dienstSettings['Overig'].color};"></div>`,
-                  iconSize: [12, 12]
-                });
-
-                const popup = `<b>${gebeurtenis}</b><br><small>${tijd}</small><br>${dienst}<br>${adres}<br>${omschrijving}`;
-                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popup);
-
-                (clusterGroups[dienst] || clusterGroups['Overig']).addLayer(marker);
+                const icon = iconSettings[dienst] || iconSettings['Overig'];
+                const popupContent = `
+                  <div class="custom-popup">
+                    <b>${gebeurtenis}</b><br>
+                    Time: ${tijd}<br>
+                    Service: ${dienst}<br>
+                    Address: ${adres}<br>
+                    Desc: ${omschrijving}
+                  </div>
+                `;
+                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popupContent);
+                layers[dienst].addLayer(marker);
               }
             });
           }
         });
-      })
-      .catch(err => console.error('Fout bij laden CSV:', err));
+      });
 
     // Legend
     const legend = L.control({ position: 'bottomleft' });
-    legend.onAdd = function () {
+    legend.onAdd = function (map) {
       const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML = '<b>Legenda</b><br>';
-      for (const dienst in dienstSettings) {
-        const id = `chk_${dienst}`;
-        div.innerHTML += `
-          <div>
-            <input type="checkbox" id="${id}" checked>
-            <label for="${id}">
-              <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
-            </label>
-          </div>`;
-      }
+      div.innerHTML = `<b>Legenda</b><br>`;
+      div.innerHTML += `<i class="fa fa-shield" style="color:#3399ff"></i> Politie<br>`;
+      div.innerHTML += `<i class="fa fa-fire" style="color:#ff3333"></i> Brandweer<br>`;
+      div.innerHTML += `<i class="fa fa-plus" style="color:#ff9933"></i> Ambulance<br>`;
+      div.innerHTML += `<i class="fa fa-circle" style="color:#66cccc"></i> Overig<br>`;
       return div;
     };
     legend.addTo(map);
-
-    map.getContainer().addEventListener('change', function(e) {
-      if (e.target.tagName === 'INPUT' && e.target.id.startsWith('chk_')) {
-        const dienst = e.target.id.replace('chk_', '');
-        if (e.target.checked) {
-          map.addLayer(layerGroups[dienst]);
-        } else {
-          map.removeLayer(layerGroups[dienst]);
-        }
-      }
-    });
   </script>
 </body>
 </html>
