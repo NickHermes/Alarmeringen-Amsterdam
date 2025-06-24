@@ -35,7 +35,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
   <script>
-    console.log("🚀 Build version: nummerd");
+    console.log("🚀 Build version: borderline");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -57,31 +57,40 @@
         const opacities = children.map(m => m.options.opacityLevel || 1);
         const maxOpacity = Math.max(...opacities);
 
-        const border = services.length === 1
+        let borderStyle = services.length === 1
           ? dienstSettings[services[0]].color
-          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(',')})`;
+          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
 
         return L.divIcon({
           html: `
             <div style="
-              position: relative;
-              width: 34px; height: 34px;
+              width: 36px; height: 36px;
               border-radius: 50%;
               border: 3px solid transparent;
-              background: ${border};
-              -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - 2px), black calc(50% - 2px));
-              mask: radial-gradient(farthest-side, transparent calc(50% - 2px), black calc(50% - 2px));
-              display: flex; align-items: center; justify-content: center;
+              background: ${borderStyle};
+              display: flex;
+              align-items: center;
+              justify-content: center;
               opacity: ${maxOpacity};
+              position: relative;
             ">
-              <span style="
-                color: #fff;
-                font-size: 12px;
+              <div style="
+                position: absolute;
+                width: 22px; height: 22px;
+                background: #111;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 font-weight: bold;
-              ">${cluster.getChildCount()}</span>
+                font-size: 12px;
+                color: #fff;
+              ">
+                ${cluster.getChildCount()}
+              </div>
             </div>`,
           className: '',
-          iconSize: [34, 34]
+          iconSize: [36, 36]
         });
       }
     });
