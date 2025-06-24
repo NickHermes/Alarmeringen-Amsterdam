@@ -4,29 +4,54 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
   <style>
     #map { height: 100vh; }
+    .legend {
+      background: white;
+      padding: 6px 8px;
+      font: 14px Arial, sans-serif;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+    }
+    .legend input {
+      margin-right: 4px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
   <script>
+    console.log("🚀 Build timestamp: 24-06-2025 xxx");
+
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-
-console.log("🚀 Build timestamp: 24-06-2025 xxx");
-
-    
-    const icons = {
-      'Ambulance': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Brandweer': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Politie': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png', iconSize: [32,32], iconAnchor: [16,32] }),
-      'Overig': new L.Icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/green-dot.png', iconSize: [32,32], iconAnchor: [16,32] })
+    const dienstSettings = {
+      'Politie': { color: 'blue', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png' },
+      'Brandweer': { color: 'red', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png' },
+      'Ambulance': { color: 'yellow', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png' },
+      'Overig': { color: 'gray', iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' }
     };
+
+    const layerGroups = {};
+    const clusterGroups = {};
+
+    for (const dienst in dienstSettings) {
+      layerGroups[dienst] = L.layerGroup();
+      clusterGroups[dienst] = L.markerClusterGroup();
+      layerGroups[dienst].addLayer(clusterGroups[dienst]);
+      layerGroups[dienst].addTo(map);
+    }
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
@@ -35,41 +60,65 @@ console.log("🚀 Build timestamp: 24-06-2025 xxx");
           header: true,
           skipEmptyLines: true,
           complete: function(results) {
-            const now = new Date();
-
             results.data.forEach(row => {
+              const dienst = row['Dienst'] || 'Overig';
               const lat = parseFloat(row['Latitude']);
               const lon = parseFloat(row['Longitude']);
-              const dienst = row['Dienst'] || 'Overig';
               const tijd = row['Tijd'] || '';
               const adres = row['Adres'] || '';
               const omschrijving = row['Omschrijving'] || '';
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                // Bepaal transparantie op basis van tijd (optioneel, hier simpel voorbeeld)
-                let opacity = 1.0;
-                if (tijd) {
-                  const tijdParts = tijd.match(/(\d{2}):(\d{2})/);
-                  if (tijdParts) {
-                    const meldingTijd = new Date(now);
-                    meldingTijd.setHours(parseInt(tijdParts[1]), parseInt(tijdParts[2]));
-                    const diffMin = (now - meldingTijd) / 60000;
-                    opacity = diffMin > 60 ? 0.4 : (diffMin > 30 ? 0.6 : 1.0);
-                  }
+                const icon = new L.Icon({
+                  iconUrl: (dienstSettings[dienst] || dienstSettings['Overig']).iconUrl,
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 32]
+                });
+
+                const popup = `<b>${gebeurtenis}</b><br>${tijd}<br>${dienst}<br>${adres}<br>${omschrijving}`;
+                const marker = L.marker([lat, lon], { icon: icon });
+                marker.bindPopup(popup);
+
+                if (clusterGroups[dienst]) {
+                  clusterGroups[dienst].addLayer(marker);
+                } else {
+                  clusterGroups['Overig'].addLayer(marker);
                 }
-
-                const icon = icons[dienst] || icons['Overig'];
-
-                L.marker([lat, lon], { icon: icon, opacity: opacity })
-                  .addTo(map)
-                  .bindPopup(`<b>${gebeurtenis}</b><br>${tijd}<br>${dienst}<br>${adres}<br>${omschrijving}`);
               }
             });
           }
         });
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
+
+    // Dynamische legenda met toggles
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = '<b>Legenda</b><br>';
+      for (const dienst in dienstSettings) {
+        const id = `chk_${dienst}`;
+        div.innerHTML += `
+          <div>
+            <input type="checkbox" id="${id}" checked>
+            <label for="${id}" style="color:${dienstSettings[dienst].color}">${dienst}</label>
+          </div>`;
+      }
+      return div;
+    };
+    legend.addTo(map);
+
+    map.getContainer().addEventListener('change', function(e) {
+      if (e.target.tagName === 'INPUT' && e.target.id.startsWith('chk_')) {
+        const dienst = e.target.id.replace('chk_', '');
+        if (e.target.checked) {
+          map.addLayer(layerGroups[dienst]);
+        } else {
+          map.removeLayer(layerGroups[dienst]);
+        }
+      }
+    });
   </script>
 </body>
 </html>
