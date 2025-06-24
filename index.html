@@ -6,27 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.css" />
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
+  
   <style>
-    body { margin: 0; background: #000; }
-    #map { height: 100vh; }
+    body { margin:0; background:#000; }
+    #map { height:100vh; }
     .legend {
-      background: rgba(20, 20, 20, 0.8);
+      background: rgba(20,20,20,0.8);
       padding: 10px;
       font: 14px "Courier New", monospace;
       color: #ccc;
       border-radius: 8px;
     }
-    .legend i {
-      width: 18px;
-      height: 18px;
-      display: inline-block;
-      text-align: center;
+    .legend img {
+      vertical-align: middle;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
     }
     .custom-popup {
-      background: rgba(20, 20, 20, 0.9);
+      background: rgba(20,20,20,0.9);
       color: #00ffff;
       font-family: "Courier New", monospace;
       padding: 5px;
@@ -38,11 +36,10 @@
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.4/leaflet.awesome-markers.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
   <script>
-    console.log("🚀 Build version: darkmode v2");
+    console.log("🚀 Build version: 24-06-2025_v2");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -50,10 +47,26 @@
     }).addTo(map);
 
     const iconSettings = {
-      'Politie': L.AwesomeMarkers.icon({ icon: 'shield', markerColor: 'blue', prefix: 'fa' }),
-      'Brandweer': L.AwesomeMarkers.icon({ icon: 'fire', markerColor: 'red', prefix: 'fa' }),
-      'Ambulance': L.AwesomeMarkers.icon({ icon: 'plus', markerColor: 'orange', prefix: 'fa' }),
-      'Overig': L.AwesomeMarkers.icon({ icon: 'circle', markerColor: 'cadetblue', prefix: 'fa' })
+      'Politie': new L.Icon({
+        iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      }),
+      'Brandweer': new L.Icon({
+        iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      }),
+      'Ambulance': new L.Icon({
+        iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      }),
+      'Overig': new L.Icon({
+        iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      })
     };
 
     const layers = {
@@ -90,8 +103,9 @@
                     Desc: ${omschrijving}
                   </div>
                 `;
-                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popupContent);
-                layers[dienst].addLayer(marker);
+                L.marker([lat, lon], { icon: icon })
+                  .bindPopup(popupContent)
+                  .addTo(layers[dienst]);
               }
             });
           }
@@ -103,10 +117,10 @@
     legend.onAdd = function (map) {
       const div = L.DomUtil.create('div', 'legend');
       div.innerHTML = `<b>Legenda</b><br>`;
-      div.innerHTML += `<i class="fa fa-shield" style="color:#3399ff"></i> Politie<br>`;
-      div.innerHTML += `<i class="fa fa-fire" style="color:#ff3333"></i> Brandweer<br>`;
-      div.innerHTML += `<i class="fa fa-plus" style="color:#ff9933"></i> Ambulance<br>`;
-      div.innerHTML += `<i class="fa fa-circle" style="color:#66cccc"></i> Overig<br>`;
+      div.innerHTML += `<img src="https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png"> Politie<br>`;
+      div.innerHTML += `<img src="https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png"> Brandweer<br>`;
+      div.innerHTML += `<img src="https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png"> Ambulance<br>`;
+      div.innerHTML += `<img src="https://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png"> Overig<br>`;
       return div;
     };
     legend.addTo(map);
