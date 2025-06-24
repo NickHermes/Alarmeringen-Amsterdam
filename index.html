@@ -4,9 +4,11 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
   <style>
     body { margin: 0; background: #111; }
     #map { height: 100vh; }
@@ -34,11 +36,13 @@
 </head>
 <body>
   <div id="map"></div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
   <script>
-    console.log("🚀 Build version: 24-06-2025-002");
+    console.log("🚀 Build version: 24-06-2025-001");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -53,50 +57,29 @@
     };
 
     const layerGroups = {};
-    const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 40, // smaller cluster radius for tighter grouping
-      iconCreateFunction: cluster => {
-        const children = cluster.getAllChildMarkers();
-        const services = [...new Set(children.map(m => m.options.serviceType))];
-        const opacities = children.map(m => m.options.opacityLevel || 1);
-        const maxOpacity = Math.max(...opacities);
+    const clusterGroups = {};
 
-        let gradient = '';
-        if (services.length === 1) {
-          gradient = dienstSettings[services[0]].color;
-        } else {
-          gradient = `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
+    for (const dienst in dienstSettings) {
+      layerGroups[dienst] = L.layerGroup();
+      clusterGroups[dienst] = L.markerClusterGroup({
+        maxClusterRadius: 40, // minder gevoelig clusteren
+        iconCreateFunction: cluster => {
+          const colors = new Set();
+          cluster.getAllChildMarkers().forEach(m => colors.add(m.options.color));
+          const colorArray = Array.from(colors);
+          const borderStyle = colorArray.length === 1 
+            ? `border: 2px solid ${colorArray[0]};`
+            : `border: 2px solid; border-image: linear-gradient(45deg, ${colorArray.join(',')}) 1;`;
+          return L.divIcon({
+            html: `<div style="${borderStyle} border-radius:50%; width:30px; height:30px; line-height:30px; text-align:center; color:#fff;">${cluster.getChildCount()}</div>`,
+            className: 'marker-cluster',
+            iconSize: [30, 30]
+          });
         }
-
-        return L.divIcon({
-          html: `<div style="
-            position: relative;
-            width: 34px; height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: bold;
-            opacity: ${maxOpacity};
-          ">
-            <div style="
-              position: absolute;
-              top: 0; left: 0; right: 0; bottom: 0;
-              border-radius: 50%;
-              padding: 2px;
-              background: ${gradient};
-              -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - 2px), black calc(50% - 2px));
-              mask: radial-gradient(farthest-side, transparent calc(50% - 2px), black calc(50% - 2px));
-            "></div>
-            ${cluster.getChildCount()}
-          </div>`,
-          className: '',
-          iconSize: [34, 34]
-        });
-      }
-    });
-    clusterGroup.addTo(map);
+      });
+      layerGroups[dienst].addLayer(clusterGroups[dienst]);
+      layerGroups[dienst].addTo(map);
+    }
 
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(response => response.text())
@@ -112,22 +95,22 @@
               const lon = parseFloat(row['Longitude']);
               const tijd = row['Tijd'] || '';
               const adres = row['Adres'] || '';
-              const omschrijving = row['Omschrijving'] || '';
               const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
 
               if (!isNaN(lat) && !isNaN(lon)) {
-                // Calculate opacity based on age
-                let opacity = 1;
-                const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
-                if (tijdParts) {
-                  const meldingTijd = new Date(now);
-                  meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]));
-                  const diffMin = (now - meldingTijd) / 60000;
-                  if (diffMin > 360) opacity = 0.2;
-                  else if (diffMin > 180) opacity = 0.4;
-                  else if (diffMin > 60) opacity = 0.6;
-                  else if (diffMin > 30) opacity = 0.8;
-                  else opacity = 1;
+                let opacity = 1.0;
+                if (tijd) {
+                  const tijdParts = tijd.match(/(\d{2}) (\w+) om (\d{2}):(\d{2})/);
+                  if (tijdParts) {
+                    const meldingTijd = new Date(now);
+                    meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]), 0, 0);
+                    const diffMin = (now - meldingTijd) / 60000;
+                    if (diffMin > 360) opacity = 0.2;
+                    else if (diffMin > 180) opacity = 0.4;
+                    else if (diffMin > 60) opacity = 0.6;
+                    else if (diffMin > 30) opacity = 0.8;
+                    else opacity = 1.0;
+                  }
                 }
 
                 const marker = L.circleMarker([lat, lon], {
@@ -138,13 +121,11 @@
                   opacity: opacity
                 }).bindPopup(`
                   <b>${gebeurtenis}</b><br>
-                  <small>${tijd}</small><br>
-                  ${dienst}<br>${adres}<br>${omschrijving}
+                  <small>${tijd}<br>${adres}</small>
                 `);
 
-                marker.options.serviceType = dienst;
-                marker.options.opacityLevel = opacity;
-                clusterGroup.addLayer(marker);
+                marker.options.color = dienstSettings[dienst].color; // voor cluster kleuren
+                (clusterGroups[dienst] || clusterGroups['Overig']).addLayer(marker);
               }
             });
           }
@@ -152,20 +133,34 @@
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
 
-    // Legend
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'legend');
       div.innerHTML = '<b>Legenda</b><br>';
       for (const dienst in dienstSettings) {
+        const id = `chk_${dienst}`;
         div.innerHTML += `
           <div>
-            <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+            <input type="checkbox" id="${id}" checked>
+            <label for="${id}">
+              <span style="background:${dienstSettings[dienst].color}; display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+            </label>
           </div>`;
       }
       return div;
     };
     legend.addTo(map);
+
+    map.getContainer().addEventListener('change', function(e) {
+      if (e.target.tagName === 'INPUT' && e.target.id.startsWith('chk_')) {
+        const dienst = e.target.id.replace('chk_', '');
+        if (e.target.checked) {
+          map.addLayer(layerGroups[dienst]);
+        } else {
+          map.removeLayer(layerGroups[dienst]);
+        }
+      }
+    });
   </script>
 </body>
 </html>
