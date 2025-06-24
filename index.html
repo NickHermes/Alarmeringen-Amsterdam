@@ -102,13 +102,24 @@
                 let opacity = 1;
                 const tijdParts = tijd.match(/(\d{1,2}) (\w+) om (\d{2}):(\d{2})/);
                 if (tijdParts) {
-                  const meldingTijd = new Date();
-                  meldingTijd.setHours(parseInt(tijdParts[3]), parseInt(tijdParts[4]), 0, 0);
+                  const dag = parseInt(tijdParts[1], 10);
+                  const maandNaam = tijdParts[2].toLowerCase();
+                  const uur = parseInt(tijdParts[3], 10);
+                  const min = parseInt(tijdParts[4], 10);
+                  const maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+                  const maandIndex = maanden.indexOf(maandNaam);
+
+                  const meldingTijd = new Date(now);
+                  meldingTijd.setMonth(maandIndex);
+                  meldingTijd.setDate(dag);
+                  meldingTijd.setHours(uur, min, 0, 0);
+
                   const diffMin = (now - meldingTijd) / 60000;
                   if (diffMin > 360) opacity = 0.2;
                   else if (diffMin > 180) opacity = 0.4;
                   else if (diffMin > 60) opacity = 0.6;
                   else if (diffMin > 30) opacity = 0.8;
+                  else opacity = 1;
                 }
 
                 const marker = L.circleMarker([lat, lon], {
