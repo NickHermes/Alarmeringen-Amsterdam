@@ -42,7 +42,7 @@
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
   <script>
-    console.log("🚀 Build version: clustering");
+    console.log("🚀 Build version: 24-06-2025-003");
 
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -69,4 +69,91 @@
           iconSize: [30, 30]
         })
       });
-      layerGroups[dienst].
+      layerGroups[dienst].addLayer(clusterGroups[dienst]);
+      layerGroups[dienst].addTo(map);
+    }
+
+    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
+      .then(response => response.text())
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            const now = new Date();
+            results.data.forEach(row => {
+              const dienst = row['Dienst'] || 'Overig';
+              const lat = parseFloat(row['Latitude']);
+              const lon = parseFloat(row['Longitude']);
+              const tijd = row['Tijd'] || '';
+              const adres = row['Adres'] || '';
+              const omschrijving = row['Omschrijving'] || '';
+              const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
+
+              if (!isNaN(lat) && !isNaN(lon)) {
+                let opacity = 1.0;
+                if (tijd) {
+                  const match = tijd.match(/(\d{1,2})\s\w+\som\s(\d{2}):(\d{2})/);
+                  if (match) {
+                    const h = parseInt(match[2], 10);
+                    const m = parseInt(match[3], 10);
+                    const eventDate = new Date(now);
+                    eventDate.setHours(h, m, 0, 0);
+                    if (eventDate > now) eventDate.setDate(eventDate.getDate() - 1);
+
+                    const diffMin = (now - eventDate) / 60000;
+                    if (diffMin > 60) opacity = 0.3;
+                    else if (diffMin > 30) opacity = 0.6;
+                  }
+                }
+
+                const rgbaColor = `rgba(${dienstSettings[dienst]?.color.join(',')},${opacity})`;
+
+                const icon = L.divIcon({
+                  className: 'custom-marker',
+                  html: `<div style="background:${rgbaColor}; width:12px; height:12px; border-radius:50%; box-shadow:0 0 6px ${rgbaColor};"></div>`,
+                  iconSize: [12, 12]
+                });
+
+                const popup = `<b>${gebeurtenis}</b><br><small>${tijd}</small><br>${dienst}<br>${adres}<br>${omschrijving}`;
+                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popup);
+
+                (clusterGroups[dienst] || clusterGroups['Overig']).addLayer(marker);
+              }
+            });
+          }
+        });
+      })
+      .catch(err => console.error('Fout bij laden CSV:', err));
+
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = '<b>Legenda</b><br>';
+      for (const dienst in dienstSettings) {
+        const id = `chk_${dienst}`;
+        div.innerHTML += `
+          <div>
+            <input type="checkbox" id="${id}" checked>
+            <label for="${id}">
+              <span style="background:rgba(${dienstSettings[dienst].color.join(',')},1); display:inline-block; width:10px; height:10px; border-radius:50%;"></span> ${dienst}
+            </label>
+          </div>`;
+      }
+      return div;
+    };
+    legend.addTo(map);
+
+    map.getContainer().addEventListener('change', function(e) {
+      if (e.target.tagName === 'INPUT' && e.target.id.startsWith('chk_')) {
+        const dienst = e.target.id.replace('chk_', '');
+        if (e.target.checked) {
+          map.addLayer(layerGroups[dienst]);
+        } else {
+          map.removeLayer(layerGroups[dienst]);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
