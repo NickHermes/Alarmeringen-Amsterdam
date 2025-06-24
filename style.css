@@ -5,44 +5,22 @@ body {
 
 #map {
   height: 100vh;
-  z-index: 1;
-  position: relative;
 }
 
-#refreshContainer {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  background: rgba(30, 30, 30, 0.8);
-  padding: 6px 10px;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-#refreshContainer input {
-  padding: 4px;
-}
-
-#refreshButton {
-  padding: 4px 8px;
-}
-
-#legendContainer {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  z-index: 1000;
+.legend {
   background: rgba(20, 20, 20, 0.8);
   padding: 6px 8px;
-  border-radius: 5px;
   font: 12px sans-serif;
+  border-radius: 5px;
   color: #eee;
   display: flex;
+  justify-content: center;
   gap: 12px;
+  flex-wrap: wrap;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .legend-item {
@@ -51,9 +29,27 @@ body {
   gap: 4px;
 }
 
-.legend-item span {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.leaflet-popup-content-wrapper {
+  background: rgba(30, 30, 30, 0.9);
+  color: #eee;
+  font-family: monospace;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.leaflet-popup-tip {
+  background: rgba(30, 30, 30, 0.9);
+}
+
+#refreshContainer {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.8);
+  padding: 4px 8px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
