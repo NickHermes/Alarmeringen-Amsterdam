@@ -146,7 +146,7 @@
       const password = document.getElementById('passwordInput').value;
       const status = document.getElementById('refreshStatus');
       if (password === '112') {
-        fetch('https://script.google.com/macros/s/AKfycbxOw_77vrpcavgEJjaEy0b_q7uJFAUIwrAjb8oohvtgjx8YNGtw1k2IFB0PgTzzlN8k/exec')
+        fetch('https://script.google.com/macros/s/AKfycbwSjzET63UaTv1MHy466IyNpleGUVYcrn4Q9oPrUIgnRxP_cFtS2Ag-i0u5cG2WYR1C/exec')
           .then(response => response.text())
           .then(data => {
             status.textContent = "✅ Feed refreshed";
