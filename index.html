@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
@@ -12,10 +12,15 @@
 <body>
   <div id="map"></div>
 
+  <div id="refreshContainer">
+    <input type="password" id="refreshPassword" placeholder="Enter password" />
+    <button id="refreshButton">Refresh Feed</button>
+    <span id="refreshStatus"></span>
+  </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-
   <script>
     console.log("🚀 Build version: 24-06-2025-004");
 
@@ -39,26 +44,38 @@
         const opacities = children.map(m => m.options.opacityLevel || 1);
         const maxOpacity = Math.max(...opacities);
 
-        let borderStyle = '';
-        if (services.length === 1) {
-          borderStyle = dienstSettings[services[0]].color;
-        } else {
-          borderStyle = `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
-        }
+        let borderStyle = services.length === 1
+          ? dienstSettings[services[0]].color
+          : `conic-gradient(${services.map(s => dienstSettings[s].color).join(', ')})`;
 
         return L.divIcon({
           html: `
-            <div class="custom-cluster" style="
-              border: 4px solid transparent;
+            <div style="
+              width: 36px; height: 36px;
+              border-radius: 50%;
+              border: 3px solid transparent;
               background: ${borderStyle};
+              display: flex;
+              align-items: center;
+              justify-content: center;
               opacity: ${maxOpacity};
             ">
-              <div class="custom-cluster-inner">
+              <div style="
+                background: #111;
+                width: 22px; height: 22px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 12px;
+                color: #fff;
+              ">
                 ${cluster.getChildCount()}
               </div>
             </div>`,
           className: '',
-          iconSize: [40, 40]
+          iconSize: [36, 36]
         });
       }
     });
@@ -116,19 +133,32 @@
       })
       .catch(err => console.error('Fout bij laden CSV:', err));
 
-    const legend = L.control({ position: 'bottomleft' });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML = '<b>Legenda</b>';
-      for (const dienst in dienstSettings) {
-        div.innerHTML += `
-          <div class="legend-item">
-            <span style="background:${dienstSettings[dienst].color}"></span> ${dienst}
-          </div>`;
+    // Refresh button logic
+    document.getElementById('refreshButton').addEventListener('click', function() {
+      const password = document.getElementById('refreshPassword').value;
+      const status = document.getElementById('refreshStatus');
+
+      if (password !== '112') {
+        status.textContent = '❌ Incorrect password';
+        status.style.color = 'red';
+        return;
       }
-      return div;
-    };
-    legend.addTo(map);
+
+      status.textContent = '⏳ Refreshing...';
+      status.style.color = '#eee';
+
+      fetch('https://script.google.com/macros/s/AKfycbxOw_77vrpcavgEJjaEy0b_q7uJFAUIwrAjb8oohvtgjx8YNGtw1k2IFB0PgTzzlN8k/exec')
+        .then(response => response.text())
+        .then(text => {
+          status.textContent = '✅ Feed refreshed';
+          status.style.color = 'lightgreen';
+        })
+        .catch(err => {
+          console.error('Refresh error:', err);
+          status.textContent = '❌ Error refreshing';
+          status.style.color = 'red';
+        });
+    });
   </script>
 </body>
 </html>
