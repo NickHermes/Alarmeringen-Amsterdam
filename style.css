@@ -39,15 +39,24 @@ body { margin: 0; background: #111; }
 }
 
 .custom-cluster {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 3px solid;
-  background: #111;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.custom-cluster-inner {
+  width: 24px;
+  height: 24px;
+  background: #111;
+  border-radius: 50%;
   color: #fff;
   font-weight: bold;
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
