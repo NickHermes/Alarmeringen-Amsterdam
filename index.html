@@ -21,19 +21,18 @@
     <div class="legend-item"><span style="background:#A9A9A9;"></span> Overig</div>
   </div>
 
-<div class="top-right-controls">
-  <div id="last-updated">Laatst bijgewerkt: onbekend</div>
-  <div id="refresh-button" title="Ververs kaart">
-    <i class="fa-solid fa-arrows-rotate"></i>
+  <div class="top-right-controls">
+    <div id="last-updated">Laatst bijgewerkt: onbekend</div>
+    <div id="refresh-button" title="Ververs kaart">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </div>
   </div>
-</div>
-
 
   <!-- Scripts -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-  
+
   <script>
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
@@ -149,36 +148,43 @@
               clusterGroup.addLayer(marker);
             }
           });
-
-          // Update 'Laatst bijgewerkt'
-          const nowStr = new Date().toLocaleString('nl-NL', {
-            day: 'numeric',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-          document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${nowStr}`;
         }
       });
     }
 
-    // Init-load
-    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
-      .then(res => res.text())
-      .then(laadData);
+    function updateLaatsteBijgewerkt() {
+      return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv')
+        .then(res => res.text())
+        .then(text => {
+          const tijdWaarde = text.split('\n')[1]?.trim();
+          if (tijdWaarde) {
+            document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijdWaarde}`;
+          }
+        })
+        .catch(() => {
+          document.getElementById('last-updated').textContent = 'Laatst bijgewerkt: onbekend';
+        });
+    }
 
-    // 🔄 Refresh-knop
-    document.getElementById('refresh-button').addEventListener('click', () => {
+    function verversKaart() {
       const button = document.getElementById('refresh-button');
       button.classList.add('spin');
 
-      fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime())
+      const kaartLaden = fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime())
         .then(res => res.text())
-        .then(csv => {
+        .then(csv => new Promise(resolve => {
           laadData(csv);
-          button.classList.remove('spin');
-        });
-    });
+          resolve();
+        }));
+
+      Promise.all([kaartLaden, updateLaatsteBijgewerkt()]).then(() => {
+        button.classList.remove('spin');
+      });
+    }
+
+    verversKaart();
+
+    document.getElementById('refresh-button').addEventListener('click', verversKaart);
   </script>
 </body>
 </html>
