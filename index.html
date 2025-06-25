@@ -19,6 +19,9 @@
     <div class="legend-item"><span style="background:#A9A9A9;"></span> Overig</div>
   </div>
 
+<div id="last-updated" class="last-updated">Laatst bijgewerkt: onbekend</div>
+
+  
   <div id="refresh-button" title="Ververs kaart">
   <i class="fa-solid fa-arrows-rotate"></i>
 </div>
@@ -149,3 +152,83 @@
   </script>
 </body>
 </html>
+document.getElementById('refresh-button').addEventListener('click', () => {
+  const button = document.getElementById('refresh-button');
+  button.classList.add('spin');
+
+  // Forceer reload van CSV
+  fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime())
+    .then(res => res.text())
+    .then(csv => {
+      clusterGroup.clearLayers(); // Oude markers verwijderen
+
+      Papa.parse(csv, {
+        header: true,
+        skipEmptyLines: true,
+        complete: results => {
+          const now = new Date();
+          results.data.forEach(row => {
+            const dienst = row['Dienst'] || 'Overig';
+            const lat = parseFloat(row['Latitude']);
+            const lon = parseFloat(row['Longitude']);
+            const tijd = row['Tijd'] || '';
+            const adres = row['Adres'] || '';
+            const gebeurtenis = row['Gebeurtenis'] || 'Onbekend';
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+              let opacity = 1;
+              const tijdParts = tijd.match(/(\d{1,2}) (\w+) om (\d{2}):(\d{2})/);
+              if (tijdParts) {
+                const dag = parseInt(tijdParts[1], 10);
+                const maandNaam = tijdParts[2].toLowerCase();
+                const uur = parseInt(tijdParts[3], 10);
+                const min = parseInt(tijdParts[4], 10);
+                const maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+                const maandIndex = maanden.indexOf(maandNaam);
+
+                const meldingTijd = new Date(now);
+                meldingTijd.setMonth(maandIndex);
+                meldingTijd.setDate(dag);
+                meldingTijd.setHours(uur, min, 0, 0);
+
+                const diffMin = (now - meldingTijd) / 60000;
+                if (diffMin > 360) opacity = 0.2;
+                else if (diffMin > 180) opacity = 0.4;
+                else if (diffMin > 60) opacity = 0.6;
+                else if (diffMin > 30) opacity = 0.8;
+              }
+
+              const marker = L.circleMarker([lat, lon], {
+                radius: 6,
+                color: dienstSettings[dienst].color,
+                fillColor: dienstSettings[dienst].color,
+                fillOpacity: opacity,
+                opacity: opacity
+              }).bindPopup(`
+                <b>${gebeurtenis}</b><br>
+                <small>${tijd}</small><br>
+                <small>${adres}</small>
+              `);
+
+              marker.options.serviceType = dienst;
+              marker.options.opacityLevel = opacity;
+              clusterGroup.addLayer(marker);
+            }
+          });
+
+          // 🛑 Stop animatie na laden
+          button.classList.remove('spin');
+
+          // 🕒 Update 'laatst bijgewerkt'
+          const nowStr = new Date().toLocaleString('nl-NL', {
+            day: 'numeric',
+            month: 'long',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${nowStr}`;
+        }
+      });
+    });
+});
+
