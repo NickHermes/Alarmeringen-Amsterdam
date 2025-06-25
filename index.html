@@ -92,11 +92,10 @@
     });
     clusterGroup.addTo(map);
 
-    const tijdcconst tijdcodeUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=1945229895&single=true&output=csv';
-
+    const tijdcodeUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=1945229895&single=true&output=csv';
 
     function updateTijdcode() {
-      fetch(tijdcodeUrl + '&' + new Date().getTime()) // cache bust
+      fetch(tijdcodeUrl + '&' + new Date().getTime())
         .then(res => res.text())
         .then(text => {
           const tijdregel = text.trim().split('\n')[0];
@@ -183,8 +182,7 @@
 
       fetch('https://script.google.com/macros/s/AKfycby3Gm1H8ozaJ9uRQulJJBZvHFHAye2YCsvYJvMDrX8XcOfzi8qwsbYpAkyBbPwjMtG5/exec')
         .then(() => {
-          // Als script klaar is: vernieuw data en tijdcode
-          return fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime());
+          return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=0&single=true&output=csv&' + new Date().getTime());
         })
         .then(res => res.text())
         .then(csv => {
