@@ -46,3 +46,34 @@ body {
 .leaflet-popup-tip {
   background: rgba(30, 30, 30, 0.9);
 }
+#refresh-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(20, 20, 20, 0.7);
+  color: white;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 1100;
+  transition: transform 0.3s ease;
+}
+
+#refresh-button:hover {
+  background: rgba(40, 40, 40, 0.9);
+}
+
+#refresh-button i {
+  font-size: 18px;
+}
+
+/* Animatie wanneer actief */
+#refresh-button.spin i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
