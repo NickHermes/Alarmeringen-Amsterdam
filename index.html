@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Externe stijlen -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -152,39 +153,45 @@
       });
     }
 
-    function updateLaatsteBijgewerkt() {
-      return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv')
-        .then(res => res.text())
-        .then(text => {
-          const tijdWaarde = text.split('\n')[1]?.trim();
-          if (tijdWaarde) {
-            document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijdWaarde}`;
-          }
-        })
-        .catch(() => {
-          document.getElementById('last-updated').textContent = 'Laatst bijgewerkt: onbekend';
-        });
-    }
+    // Init-load meldingen
+    fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
+      .then(res => res.text())
+      .then(laadData);
 
-    function verversKaart() {
+    // Init-load tijdcode
+    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv')
+      .then(res => res.text())
+      .then(csv => {
+        const tijd = csv.split('\n')[1] || 'onbekend';
+        document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijd}`;
+      });
+
+    // 🔄 Refresh-knop: trigger Apps Script en daarna update kaart
+    document.getElementById('refresh-button').addEventListener('click', () => {
       const button = document.getElementById('refresh-button');
       button.classList.add('spin');
 
-      const kaartLaden = fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime())
+      fetch('https://script.google.com/macros/s/AKfycby3Gm1H8ozaJ9uRQulJJBZvHFHAye2YCsvYJvMDrX8XcOfzi8qwsbYpAkyBbPwjMtG5/exec')
+        .then(() =>
+          fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime())
+        )
         .then(res => res.text())
-        .then(csv => new Promise(resolve => {
+        .then(csv => {
           laadData(csv);
-          resolve();
-        }));
-
-      Promise.all([kaartLaden, updateLaatsteBijgewerkt()]).then(() => {
-        button.classList.remove('spin');
-      });
-    }
-
-    verversKaart();
-
-    document.getElementById('refresh-button').addEventListener('click', verversKaart);
+          return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv');
+        })
+        .then(res => res.text())
+        .then(csv => {
+          const tijd = csv.split('\n')[1] || 'onbekend';
+          document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijd}`;
+          button.classList.remove('spin');
+        })
+        .catch(err => {
+          console.error('Fout bij verversen:', err);
+          button.classList.remove('spin');
+          document.getElementById('last-updated').textContent = 'Fout bij verversen';
+        });
+    });
   </script>
 </body>
 </html>
