@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Alarmeringen Amsterdam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Stijlen -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -21,16 +22,16 @@
   </div>
 
   <div class="top-right-controls">
-    <div id="last-updated">Laatst bijgewerkt: onbekend</div>
+    <div id="last-updated">Laatst bijgewerkt: </div>
     <div id="refresh-button" title="Ververs kaart">
       <i class="fa-solid fa-arrows-rotate"></i>
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-
   <script>
     const map = L.map('map').setView([52.37, 4.89], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
@@ -91,6 +92,21 @@
     });
     clusterGroup.addTo(map);
 
+    const tijdcodeUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv';
+
+    function updateTijdcode() {
+      fetch(tijdcodeUrl + '&' + new Date().getTime()) // cache bust
+        .then(res => res.text())
+        .then(text => {
+          const tijdregel = text.trim().split('\n')[0];
+          document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijdregel}`;
+        })
+        .catch(err => {
+          console.error('Fout bij ophalen tijdcode:', err);
+          document.getElementById('last-updated').textContent = 'Laatst bijgewerkt: onbekend';
+        });
+    }
+
     function laadData(csv) {
       clusterGroup.clearLayers();
       Papa.parse(csv, {
@@ -116,10 +132,12 @@
                 const min = parseInt(tijdParts[4], 10);
                 const maanden = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
                 const maandIndex = maanden.indexOf(maandNaam);
+
                 const meldingTijd = new Date(now);
                 meldingTijd.setMonth(maandIndex);
                 meldingTijd.setDate(dag);
                 meldingTijd.setHours(uur, min, 0, 0);
+
                 const diffMin = (now - meldingTijd) / 60000;
                 if (diffMin > 360) opacity = 0.2;
                 else if (diffMin > 180) opacity = 0.4;
@@ -148,37 +166,35 @@
       });
     }
 
-    function updateTijdcode() {
-      const tijdUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?output=csv&' + new Date().getTime();
-      fetch(tijdUrl)
-        .then(res => res.text())
-        .then(csv => {
-          const tijd = csv.split('\n')[0].trim();
-          document.getElementById('last-updated').textContent = `Laatst bijgewerkt: ${tijd}`;
-        });
-    }
-
     // Init-load
     fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000')
       .then(res => res.text())
-      .then(laadData)
-      .then(updateTijdcode);
+      .then(laadData);
 
-    document.getElementById('refresh-button').addEventListener('click', () => {
-      const button = document.getElementById('refresh-button');
-      button.classList.add('spin', 'disabled');
-      button.style.pointerEvents = 'none';
+    updateTijdcode();
+
+    // Refresh-knop
+    const refreshBtn = document.getElementById('refresh-button');
+    refreshBtn.addEventListener('click', () => {
+      if (refreshBtn.classList.contains('disabled')) return;
+
+      refreshBtn.classList.add('spin', 'disabled');
 
       fetch('https://script.google.com/macros/s/AKfycby3Gm1H8ozaJ9uRQulJJBZvHFHAye2YCsvYJvMDrX8XcOfzi8qwsbYpAkyBbPwjMtG5/exec')
         .then(() => {
+          // Als script klaar is: vernieuw data en tijdcode
           return fetch('https://docs.google.com/spreadsheets/d/1NkNsQypjoSocxggUO8ZvB1yKi7jOm4iSn3O90IE0SdI/gviz/tq?tqx=out:csv&sheet=P2000&' + new Date().getTime());
         })
         .then(res => res.text())
-        .then(laadData)
-        .then(updateTijdcode)
+        .then(csv => {
+          laadData(csv);
+          updateTijdcode();
+        })
+        .catch(err => {
+          console.error('Fout tijdens refresh:', err);
+        })
         .finally(() => {
-          button.classList.remove('spin', 'disabled');
-          button.style.pointerEvents = 'auto';
+          refreshBtn.classList.remove('spin', 'disabled');
         });
     });
   </script>
