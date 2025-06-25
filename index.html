@@ -92,7 +92,8 @@
     });
     clusterGroup.addTo(map);
 
-    const tijdcodeUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=1945229895&single=true&output=csv';
+    const tijdcodeUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=1945229895&single=true&output=csv';
+    const p2000Url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1Ila0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvylDF4FYxQ/pub?gid=0&single=true&output=csv';
 
     function updateTijdcode() {
       fetch(tijdcodeUrl + '&' + new Date().getTime())
@@ -167,10 +168,7 @@
     }
 
     // Init-load
-    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=0&single=true&output=csv')
-      .then(res => res.text())
-      .then(laadData);
-
+    fetch(p2000Url).then(res => res.text()).then(laadData);
     updateTijdcode();
 
     // Refresh-knop
@@ -182,7 +180,7 @@
 
       fetch('https://script.google.com/macros/s/AKfycby3Gm1H8ozaJ9uRQulJJBZvHFHAye2YCsvYJvMDrX8XcOfzi8qwsbYpAkyBbPwjMtG5/exec')
         .then(() => {
-          return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vR00xNVvauBKHq9x6o7mrIO1lla0g3SqmQS1FoVbke7Wx8wYKXPRXvcbtNUrCPoJpWpJqvyIDF4FYxQ/pub?gid=0&single=true&output=csv&' + new Date().getTime());
+          return fetch(p2000Url + '&' + new Date().getTime());
         })
         .then(res => res.text())
         .then(csv => {
