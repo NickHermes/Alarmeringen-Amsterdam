@@ -96,3 +96,9 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+#refresh-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
