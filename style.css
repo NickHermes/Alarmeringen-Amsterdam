@@ -102,3 +102,6 @@ body {
   cursor: not-allowed;
 }
 
+.leaflet-container {
+  background: #111 !important;
+}
